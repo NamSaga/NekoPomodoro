@@ -1,11 +1,45 @@
-Your friendly productivity companion living in the browser's bottom border
+![banner](../NekoPomodoro/banner/NekoPomodoro.png)
 
-#The idea
+**NekoPomodoro**  
+Your friendly productivity companion living in the browser’s bottom border.
 
-Adorable Kitten Avatar: A playful kitten lives along your browser's bottom edge
-Customizable Timers: Set your own work/break durations (default: 25/5 minutes)
-Smart Notifications: Gentle visual/audio reminders when it's break time
-Pause Anytime: Start/stop from the toolbar icon or kitten interactions
-Persistent Settings: Your preferences survive browser restarts
-Zero Distractions: Non-intrusive design that never covers content
-Cross-Platform: Working on Brave (for now as I use brave mainly)
+---
+
+## The Idea
+
+**NekoPomodoro** is a lightweight Pomodoro timer designed to keep you focused without interrupting your workflow.  
+A small, adorable kitten accompanies you at the bottom of your browser, gently reminding you when it’s time to work or take a break.
+
+---
+
+## Features
+
+- **Adorable Kitten Avatar**  
+  A playful kitten lives along your browser’s bottom edge.
+
+- **Customizable Timers**  
+  Set your own work and break durations  
+  *(default: 25 minutes work / 5 minutes break)*.
+
+- **Smart Notifications**  
+  Gentle visual and audio reminders when it’s time to take a break.
+
+- **Pause Anytime**  
+  Start or stop sessions from the toolbar icon or directly via kitten interactions.
+
+- **Persistent Settings**  
+  Your preferences are saved and restored across browser restarts.
+
+- **Zero Distractions**  
+  Non-intrusive design that never covers or blocks page content.
+
+- **Cross-Platform (Experimental)**  
+  Currently tested and working on **Brave** (primary development browser).
+
+---
+
+## Philosophy
+
+> Stay focused.  
+> Take breaks.  
+> Let the kitten worry about the time.
