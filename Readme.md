@@ -1,4 +1,4 @@
-![banner](../NekoPomodoro/banner/NekoPomodoro.png)
+![banner](banner/NekoPomodoro.png)
 
 **NekoPomodoro**  
 Your friendly productivity companion living in the browser’s bottom border.
