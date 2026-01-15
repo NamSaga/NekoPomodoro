@@ -1,9 +1,9 @@
-//Timer variables
-let timer;
-let secondsLeft = 25 * 60; // Default to 25 minutes
-let isrunning = false;
+// Local state (synced from background)
+let isRunning = false;
+let secondsLeft = 25 * 60;
 let isWorkMode = true;
 let pomodoroCount = 0;
+let updateInterval;
 
 // DOM elements
 const timerDisplay = document.getElementById('timerDisplay');
@@ -11,176 +11,120 @@ const modeIndicator = document.getElementById('modeIndicator');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const workDurationInput = document.getElementById('workDuration');
+const breakDurationInput = document.getElementById('breakDuration');
+const pomodoroCountElement = document.getElementById('pomodoroCount');
 
-// Initialize timer timerDisplay
+// Initialize popup
 function init() {
-	loadSettings();
-	loadPomodoroCount();
-	updateDisplay();
 	setupEventListeners();
+	loadStateFromBackground();
+	// Poll for updates while popup is open
+	updateInterval = setInterval(loadStateFromBackground, 500);
 }
 
-//Load settings from storage
-function loadSettings() {
-	chrome.storage.sync.get(['workDuration'], (data) => {
-		if (data.workDuration) {
-			workDurationInput.value = data.workDuration;
-			seconds = data.workDuration * 60;
+// Load state from background script
+function loadStateFromBackground() {
+	chrome.runtime.sendMessage({ action: 'getState' }, (state) => {
+		if (state) {
+			secondsLeft = state.secondsLeft;
+			isRunning = state.isRunning;
+			isWorkMode = state.isWorkMode;
+			pomodoroCount = state.pomodoroCount;
+			workDurationInput.value = state.workDuration;
+			breakDurationInput.value = state.breakDuration;
+			updateUI();
 		}
-		if (!data.workDuration) {
-			workDurationInput.value = data.breakDuration;
-		}
-		updateDisplay();
 	});
 }
 
-//Load pomodoro count from storage
-function loadPomodoroCount() {
-	chrome.storage.sync.get(['pomodoroCount'], (data) => {
-			pomodoroCount = data.pomodoroCount || 0;
-			pomodoroCountElement.textContent = pomodoroCount;			
-	});
+// Update UI based on current state
+function updateUI() {
+	updateDisplay();
+	pomodoroCountElement.textContent = pomodoroCount;
+	
+	if (isRunning) {
+		startBtn.textContent = 'Pause';
+		startBtn.classList.add('pause-btn');
+		startBtn.classList.remove('start-btn');
+	} else {
+		startBtn.textContent = 'Start';
+		startBtn.classList.add('start-btn');
+		startBtn.classList.remove('pause-btn');
+	}
+	
+	if (isWorkMode) {
+		modeIndicator.innerHTML = '<span class="mode work-mode">WORK MODE</span>';
+	} else {
+		modeIndicator.innerHTML = '<span class="mode break-mode">BREAK MODE</span>';
+	}
 }
 
-//Setup event listeners
+// Setup event listeners
 function setupEventListeners() {
 	startBtn.addEventListener('click', toggleTimer);
 	resetBtn.addEventListener('click', resetTimer);
-	workDurationInput.addEventListener('change', updateWorkDuration);
-	breakDurationInput.addEventListener('change', updateBreakDuration);
+	workDurationInput.addEventListener('change', updateSettings);
+	breakDurationInput.addEventListener('change', updateSettings);
 }
 
-//Toggle timer start/stop
+// Toggle timer start/stop
 function toggleTimer() {
-	if (isrunning) {
-		stopTimer();
+	if (isRunning) {
+		chrome.runtime.sendMessage({ action: 'stop' }, (state) => {
+			if (state) {
+				isRunning = state.isRunning;
+				secondsLeft = state.secondsLeft;
+				updateUI();
+			}
+		});
 	} else {
-		startTimer();
+		chrome.runtime.sendMessage({ action: 'start' }, (state) => {
+			if (state) {
+				isRunning = state.isRunning;
+				updateUI();
+			}
+		});
 	}
 }
 
-//Start the timer
-function startTimer() {
-	if (secondsLeft <= 0) return;
-	isrunning = true;
-	startBtn.textContent = 'Pause';
-	startBtn.classList.add('pause');
-	startBtn.classList.remove('start-btn');
-
-	timer = setInterval(() => {
-		secondsLeft--;
-		updateDisplay();
-
-		if (secondsLeft <= 0) {
-			completePhase();
-		}
-	}, 1000);
-}
-
-// Save settings when timer starts 
-saveSettings();
-
-//Stop the timer
-function stopTimer() {
-	isrunning = false;
-	startBtn.textContent = 'Start';
-	startBtn.classList.add('start-btn');
-	startBtn.classList.remove('pause-btn');
-}
-
-//Reset the timer 
+// Reset the timer
 function resetTimer() {
-	stopTimer();
-	if (isWorkMode) {
-		secondsLeft = workDurationInput.value * 60;
-	} else {
-		secondsLeft = breakDurationInput.value * 60;
-	}
-	updateDisplay();
-}
-
-//Complete the current phase 
-function completePhase() {
-	stopTimer();
-	if (isWorkMode) {
-		//work phase complete
-		pomodoroCount++;
-		pomodoroCountElement.textContent = pomodoroCount;
-		chrome.storage.sync.set({ pomodoroCount: pomodoroCount });
-
-		//show notification
-		chrome.notifications.create({
-			type: 'basic',
-			iconUrl: 'icons/icon.png',
-			title: 'Pomodoro Complete!',
-			message: 'Time for a break!'
-			priority: 2
-		});
-
-		//switch to break mode 
-		isWorkMode = false;
-		secondsLeft = breakDurationInput.value * 60;
-		modeIndicator.innerHTML = '<span class="mode break-mode">BREAK MODE</span>';
-	} else {
-		//break phase complete
-		chrome.notifications.create({
-			type: 'basic',
-			iconUrl: 'icons/icon.png',
-			title: 'Break Over!',
-			message: 'Time to get back to work!'
-			priority: 2
-		});
-
-		//switch to work mode 
-		isWorkMode = true;
-		secondsLeft = workDurationInput.value * 60;
-		modeIndicator.innerHTML = '<span class="mode work-mode">WORK MODE</span>';
-	}
-
-	updateDisplay();
-
-	//Auto start next phase 
-	setTimeout(() => {
-		if (confirm(isWorkMode ? 
-			'Break over! Start work session?' (${workDurationInput.value} minutes) ?' :
-			'Work session complete! Start break?' (${breakDurationInput.value} minutes) ?')) {
-			startTimer();
+	chrome.runtime.sendMessage({ action: 'reset' }, (state) => {
+		if (state) {
+			secondsLeft = state.secondsLeft;
+			isRunning = state.isRunning;
+			updateUI();
 		}
-	}, 3000);
+	});
 }
 
-//Update the timer display 
+// Update the timer display
 function updateDisplay() {
 	const minutes = Math.floor(secondsLeft / 60);
 	const seconds = secondsLeft % 60;
 	timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-//Update work duration
-function updateWorkDuration() {
-	if (!isrunning && isWorkMode) {
-		secondsLeft = workDurationInput.value * 60;
-		updateDisplay();
-	}
-	updateSettings();
-}
-
-//Update break duration
-function updateBreakDuration() {
-	if (!isrunning && !isWorkMode) {
-		secondsLeft = breakDurationInput.value * 60;
-		updateDisplay();
-	}
-	updateSettings();
-}
-
-//Save settings to storage
+// Update settings in background
 function updateSettings() {
-	chrome.storage.sync.set({
+	chrome.runtime.sendMessage({
+		action: 'updateSettings',
 		workDuration: parseInt(workDurationInput.value),
 		breakDuration: parseInt(breakDurationInput.value)
+	}, (state) => {
+		if (state) {
+			secondsLeft = state.secondsLeft;
+			updateUI();
+		}
 	});
 }
 
-//Initialize the popup
+// Cleanup when popup closes
+window.addEventListener('unload', () => {
+	if (updateInterval) {
+		clearInterval(updateInterval);
+	}
+});
+
+// Initialize the popup
 document.addEventListener('DOMContentLoaded', init);
